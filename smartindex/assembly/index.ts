@@ -6,7 +6,6 @@ import {
   getResultFromJson,
   getTxUTXOByBlockHeight,
   Table,
-  consoleLog,
 } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 import { RunestoneParser } from "./runestone";
 import { decodeHex } from "./utils";
@@ -337,16 +336,13 @@ export function index(from_ptr: i32, to_ptr: i32): void {
   }
 }
 
-export function exec_test(rune_ptr: i32): void {
+export function get_etching(rune_ptr: i32): void {
   const rune = ptrToString(rune_ptr);
   const etching = getEtching(rune);
+  if (etching.some) {
+    valueReturn(etching.some.inspectJson());
+    return;
+  }
 
-  // etching.some.rune = new Option(etching.some.rune.some + "_UPDATED", true);
-  insertEtching(0, 0, etching.some);
-
-  // const selectResult = etchings.select([new Column("rune", rune)]);
-  // selectResult.getBool;
-  // const result = selectResult.toString();
-
-  valueReturn("ok");
+  valueReturn("not_found");
 }
