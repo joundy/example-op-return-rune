@@ -11,7 +11,13 @@ import { RunestoneParser } from "./runestone";
 import { decodeHex } from "./utils";
 import { Etching, Terms } from "./etching";
 import { Option } from "./option";
-import { TableSchema } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
+import {
+  TableSchema,
+  getTxsByBlockHeight,
+} from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
+import { getTransactionsByBlockHash } from "@east-bitcoin-lib/smartindex-sdk/assembly/env";
+import { RuneTransaction } from "./transaction";
+import { Outpoint } from "./outpoint";
 export { allocate } from "@east-bitcoin-lib/smartindex-sdk/assembly/external";
 
 const stateTable = new Table("state", [
@@ -20,10 +26,15 @@ const stateTable = new Table("state", [
 ]);
 
 const etchings = new Table("etchings", [
+  // rune_id
   new Column("rune_block", "string"),
   new Column("rune_tx", "string"),
+
+  // state
   new Column("minted", "string"),
   new Column("burned", "string"),
+
+  // etching data
   new Column("divisibility", "string"),
   new Column("premine", "string"),
   new Column("rune", "string"),
@@ -40,36 +51,19 @@ const etchings = new Table("etchings", [
 ]);
 
 const outpoints = new Table("outpoints", [
-  new Column("hash", "string"),
-  new Column("vout", "string"),
-  new Column("satValue", "string"),
-  new Column("address", "string"),
+  // rune_id
   new Column("rune_block", "string"),
   new Column("rune_tx", "string"),
-  new Column("amount", "string"),
+  new Column("rune", "string"),
+
+  new Column("tx_hash", "string"),
+  new Column("index", "string"),
+
+  new Column("address", "string"),
+  new Column("amount", "string"), // token amount/value
 ]);
 
-export function init(): void {
-  stateTable.init("indexed_block_height");
-  stateTable.insert([
-    new Column("id", "0"),
-    new Column("indexed_block_height", "0"),
-  ]);
-
-  etchings.init("");
-  outpoints.init("");
-}
-
-export function getIndexedBlock(): void {
-  const latestBlock: string = getResultFromJson(
-    stateTable.select([new Column("id", "0")]),
-    "indexed_block_height",
-    "string"
-  );
-  valueReturn(latestBlock);
-}
-
-function isEtched(rune: string): bool {
+function _isEtched(rune: string): bool {
   const selectResult = etchings.select([new Column("rune", rune)]);
   if (getResultFromJson(selectResult, "error", "string").includes("no rows")) {
     return false;
@@ -78,7 +72,64 @@ function isEtched(rune: string): bool {
   return true;
 }
 
-function getEtching(_rune: string): Option<Etching> {
+function _getBurned(rune: string): Option<u128> {
+  const selectResult = etchings.select([new Column("rune", rune)]);
+  if (!getResultFromJson(selectResult, "error", "string").includes("no rows")) {
+    const burned = u128.from(
+      getResultFromJson(selectResult, "burned", "string")
+    );
+    return new Option(burned, true);
+  }
+  return new Option(u128.from(0), false);
+}
+
+function _getMinted(rune: string): Option<u128> {
+  const selectResult = etchings.select([new Column("rune", rune)]);
+  if (!getResultFromJson(selectResult, "error", "string").includes("no rows")) {
+    const minted = u128.from(
+      getResultFromJson(selectResult, "minted", "string")
+    );
+    return new Option(minted, true);
+  }
+  return new Option(u128.from(0), false);
+}
+
+function _setMinted(rune: string, minted: u128): void {
+  etchings.update(
+    [new Column("rune", rune)],
+    [new Column("minted", minted.toString())]
+  );
+}
+
+function _incBurned(rune: string, inc: u128): void {
+  const burned = _getBurned(rune);
+  if (!burned.some) {
+    return;
+  }
+
+  const value = u128.add(burned.some, inc);
+  etchings.update(
+    [new Column("rune", rune)],
+    [new Column("burned", value.toString())]
+  );
+}
+
+function _insertOutpoint(outpoint: Outpoint): void {
+  const insertData: TableSchema = [
+    new Column("rune_block", outpoint.runeBlock.toString()),
+    new Column("rune_tx", outpoint.runeTx.toString()),
+    new Column("rune", outpoint.rune),
+
+    new Column("tx_hash", outpoint.txHash),
+    new Column("index", outpoint.index.toString()),
+
+    new Column("address", outpoint.address),
+    new Column("amount", outpoint.amount.toString()),
+  ];
+  outpoints.insert(insertData);
+}
+
+function _getEtching(_rune: string): Option<Etching> {
   const r = etchings.select([new Column("rune", _rune)]);
   if (getResultFromJson(r, "error", "string").includes("no rows")) {
     return new Option(changetype<Etching>(0), false);
@@ -202,10 +253,10 @@ function getEtching(_rune: string): Option<Etching> {
   );
 }
 
-function insertEtching(block: u64, tx: u32, etching: Etching): void {
-  // if (etching.rune.isSome && isEtched(etching.rune.some)) {
-  //   return;
-  // }
+function _processEtching(block: u64, tx: u32, etching: Etching): void {
+  if (etching.rune.isSome && _isEtched(etching.rune.some)) {
+    return;
+  }
 
   const insertData: TableSchema = [
     new Column("rune_block", block.toString()),
@@ -270,7 +321,46 @@ function insertEtching(block: u64, tx: u32, etching: Etching): void {
   etchings.insert(insertData);
 }
 
-function processRune(block: u64, tx: u32, rune: RunestoneParser): void {
+function _processMint(
+  blockHeight: u64,
+  index: u32,
+  rune: string,
+  toAddress: string
+): void {
+  const etching = _getEtching(rune);
+  if (!etching.isSome) {
+    return;
+  }
+  if (!etching.some.terms.isSome) {
+    return;
+  }
+  if (!etching.some.terms.some.amount.isSome) {
+    return;
+  }
+  const amount = etching.some.terms.some.amount.some;
+
+  const currentMintTotal = _getMinted(rune).some;
+  const totalMint = u128.add(currentMintTotal, u128.from(1));
+
+  // cap checking
+  if (etching.some.terms.some.cap.isSome) {
+    if (u128.gt(totalMint, etching.some.terms.some.cap.some)) {
+      return;
+    }
+  }
+
+  _setMinted(rune, totalMint);
+
+  // TODO validate offset and height
+}
+
+function _processRune(runeTx: RuneTransaction): void {
+  const runeIndex = runeTx.runeIndex();
+  if (!runeIndex.isSome) {
+    return;
+  }
+  const rune = runeTx.runeData(runeIndex.some);
+
   // TODO: validate rune commit
   if (rune.isEtching()) {
     let terms: Option<Terms> = new Option(changetype<Terms>(0), false);
@@ -300,7 +390,7 @@ function processRune(block: u64, tx: u32, rune: RunestoneParser): void {
       turbo
     );
 
-    insertEtching(block, tx, etch);
+    _processEtching(runeTx.blockHeight, runeTx.index, etch);
   }
 
   // TODO: handle mint
@@ -308,25 +398,35 @@ function processRune(block: u64, tx: u32, rune: RunestoneParser): void {
   }
 }
 
+export function init(): void {
+  stateTable.init("indexed_block_height");
+  stateTable.insert([
+    new Column("id", "0"),
+    new Column("indexed_block_height", "0"),
+  ]);
+
+  etchings.init("");
+  outpoints.init("");
+}
+
+export function getIndexedBlock(): void {
+  const latestBlock: string = getResultFromJson(
+    stateTable.select([new Column("id", "0")]),
+    "indexed_block_height",
+    "string"
+  );
+  valueReturn(latestBlock);
+}
+
 export function index(from_ptr: i32, to_ptr: i32): void {
   const fromBlock: i64 = i64(parseInt(ptrToString(from_ptr)));
   const toBlock: i64 = i64(parseInt(ptrToString(to_ptr)));
 
   for (let i = fromBlock; i <= toBlock; i++) {
-    const utxos = getTxUTXOByBlockHeight(i);
-    for (let j = 0; j < utxos.length; j++) {
-      if (utxos[j].pkAsmScripts.length === 3) {
-        // 93 is magic number for rune OP_13
-        if (
-          utxos[j].pkAsmScripts[0] === "OP_RETURN" &&
-          utxos[j].pkAsmScripts[1] === "93"
-        ) {
-          const encodedRune = utxos[j].pkAsmScripts[2];
-
-          // TODO: get transaction index
-          processRune(0, 0, RunestoneParser.fromBuffer(decodeHex(encodedRune)));
-        }
-      }
+    const txs = getTxsByBlockHeight(i);
+    for (let j = 0; j < txs.length; j++) {
+      const runeTransaction = RuneTransaction.fromTransaction(i, j, txs[j]);
+      _processRune(runeTransaction);
     }
 
     stateTable.update(
@@ -336,10 +436,10 @@ export function index(from_ptr: i32, to_ptr: i32): void {
   }
 }
 
-export function get_etching(rune_ptr: i32): void {
+export function getEtching(rune_ptr: i32): void {
   const rune = ptrToString(rune_ptr);
-  const etching = getEtching(rune);
-  if (etching.some) {
+  const etching = _getEtching(rune);
+  if (etching.isSome) {
     valueReturn(etching.some.inspectJson());
     return;
   }

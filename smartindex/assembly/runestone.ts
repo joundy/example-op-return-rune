@@ -6,6 +6,7 @@ import { fieldToU128, fieldToName, readULEB128ToU128, Box } from "./utils";
 import { Edict } from "./edicts";
 import { RuneId } from "./runeId";
 import { Option } from "./option";
+import { Flaw } from "./flaws";
 
 // TODO:
 // - cenopath
@@ -16,9 +17,11 @@ export class RunestoneParser {
   fields: Map<u64, Array<u128>>;
   edictsRaw: Array<StaticArray<u128>>;
 
+  flaws: Flaw[] = [];
+
   constructor(
     fields: Map<u64, Array<u128>>,
-    edictsRaw: Array<StaticArray<u128>>
+    edictsRaw: Array<StaticArray<u128>>,
   ) {
     this.fields = fields;
     this.edictsRaw = edictsRaw;

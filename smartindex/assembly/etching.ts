@@ -16,7 +16,7 @@ export class Terms {
     heightStart: Option<u64>,
     heightEnd: Option<u64>,
     offsetStart: Option<u64>,
-    offsetEnd: Option<u64>
+    offsetEnd: Option<u64>,
   ) {
     this.amount = amount;
     this.cap = cap;
@@ -43,7 +43,7 @@ export class Etching {
     spacers: Option<u32>,
     symbol: Option<string>,
     terms: Option<Terms>,
-    turbo: bool
+    turbo: bool,
   ) {
     this.divisibility = divisibility;
     this.premine = premine;
