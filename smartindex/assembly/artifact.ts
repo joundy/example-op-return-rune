@@ -1,3 +1,4 @@
+import { u128 } from "as-bignum/assembly";
 import { Edict } from "./edicts";
 import { Etching } from "./etching";
 import { Flaw } from "./flaws";
@@ -7,16 +8,24 @@ import { Rune, RuneId } from "./runeId";
 export class Artifact {}
 
 export class Cenotaph extends Artifact {
-  flaws: Flaw[] = [];
+  flaw: Flaw;
   etching: Option<Rune>;
   mint: Option<RuneId>;
 
-  constructor(flaws: Flaw[], etching: Option<Rune>, mint: Option<RuneId>) {
+  constructor(flaw: Flaw, etching: Option<Rune>, mint: Option<RuneId>) {
     super();
 
-    this.flaws = flaws;
+    this.flaw = flaw;
     this.etching = etching;
     this.mint = mint;
+  }
+
+  static flaw(flaw: Flaw): Cenotaph {
+    return new Cenotaph(
+      flaw,
+      Option.Some(changetype<Rune>(u128.from(0))),
+      Option.Some(changetype<RuneId>(0)),
+    );
   }
 }
 

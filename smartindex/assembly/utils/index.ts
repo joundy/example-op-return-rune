@@ -1,5 +1,7 @@
 import { u128 } from "as-bignum/assembly";
 import { Box } from "./box";
+import { Option } from "../option";
+import { Field } from "../field";
 
 export function fieldToU128(data: Array<u128>): u128 {
   if (data.length === 0) return u128.from(0);
@@ -57,6 +59,35 @@ export function readULEB128ToU128(buf: Box, to: u128): usize {
   to.hi = result.hi;
   to.lo = result.lo;
   return slice.start - buf.start;
+}
+
+export function getFieldValue<T>(
+  fields: Map<u64, Array<u128>>,
+  field: u8,
+): Option<T> {
+  if (!fields.has(field)) {
+    return Option.None<T>(<T>0);
+  }
+  const value = <T>fields.get(field)[0].lo;
+  return Option.Some<T>(value);
+}
+
+export function getFieldValueU128(
+  fields: Map<u64, Array<u128>>,
+  field: u8,
+): Option<u128> {
+  if (!fields.has(field)) {
+    return Option.None(u128.from(0));
+  }
+  const value = fields.get(field)[0];
+  return Option.Some(value);
+}
+
+export function getFlag(fields: Map<u64, Array<u128>>, position: u64): bool {
+  if (!fields.has(Field.FLAGS)) return false;
+  const flags = fieldToU128(fields.get(Field.FLAGS));
+  //@ts-ignore
+  return !u128.and(flags, u128.from(1) << (<i32>position)).isZero();
 }
 
 export * from "./box";

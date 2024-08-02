@@ -1,7 +1,5 @@
 import { Transaction } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
 import { Option } from "./option";
-import { RunestoneParser } from "./runestone";
-import { decodeHex } from "./utils";
 
 const OP_13 = "93";
 
@@ -88,16 +86,9 @@ export class RuneTransaction {
         vout.asmScripts[0] === "OP_RETURN" &&
         vout.asmScripts[1] === OP_13
       ) {
-        return new Option(i, false);
+        return Option.Some(<u32>i);
       }
     }
-    return new Option(0, false);
-  }
-
-  runeData(index: u32): RunestoneParser {
-    const rune = RunestoneParser.fromBuffer(
-      decodeHex(this.vouts[index].asmScripts[2]),
-    );
-    return rune;
+    return Option.None(<u32>0);
   }
 }

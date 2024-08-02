@@ -10,4 +10,8 @@ export class RuneId {
     this.block = block;
     this.tx = tx;
   }
+
+  static default(): RuneId {
+    return changetype<RuneId>(0);
+  }
 }
