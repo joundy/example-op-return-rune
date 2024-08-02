@@ -8,13 +8,26 @@ import {
 import { getTxsByBlockHeight } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
 import { RuneTransaction } from "./transaction";
 import { outpoints, runeEntries, stateTable } from "./tables";
+import { RunestoneParser } from "./runestone";
+import { decodeHex } from "./utils";
+import { Cenotaph, Runestone } from "./artifact";
 export { allocate } from "@east-bitcoin-lib/smartindex-sdk/assembly/external";
 
 function _processRune(runeTx: RuneTransaction): void {
-  const runeIndex = runeTx.runeIndex();
-  if (!runeIndex.isSome()) {
+  const runeData = runeTx.runeData;
+  if (!runeData.isSome()) {
     return;
   }
+
+  const artifact = RunestoneParser.dechiper(decodeHex(runeData.unwrap()));
+
+  if (artifact instanceof Cenotaph) {
+    // TODO:
+    throw new Error("errors.cenotaph");
+  }
+
+  const runestone = artifact as Runestone;
+  consoleLog(runestone.etching.unwrap().rune.unwrap());
 }
 
 export function init(): void {

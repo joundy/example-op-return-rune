@@ -8,6 +8,7 @@ import {
   getFieldValue,
   getFieldValueU128,
   getFlag,
+  getMint,
 } from "./utils";
 import { Edict } from "./edicts";
 import { RuneId } from "./runeId";
@@ -78,22 +79,6 @@ export class RunestoneParser {
       }
     }
 
-    function getMint(): Option<RuneId> {
-      if (!fields.has(Field.MINT)) {
-        return Option.None(RuneId.default());
-      }
-
-      const mint = fields.get(Field.MINT);
-      if (mint.length < 2) {
-        // skip if the runeId is not valid
-        return Option.None(RuneId.default());
-      }
-      const block = <u64>mint[0].lo;
-      const tx = <u32>mint[1].lo;
-
-      return Option.Some(new RuneId(block, tx));
-    }
-
     let etching = Option.None(Etching.default());
     if (getFlag(fields, Flag.ETCHING)) {
       const divisibility = getFieldValue<u8>(fields, Field.DIVISIBILITY);
@@ -139,7 +124,7 @@ export class RunestoneParser {
     }
 
     const edicts = Edict.fromDeltaSeries(edictsRaw);
-    const mint = getMint();
+    const mint = getMint(fields);
     const pointer = getFieldValue<u32>(fields, Field.POINTER);
 
     return new Runestone(edicts, etching, mint, pointer);

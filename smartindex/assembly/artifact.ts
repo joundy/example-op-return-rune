@@ -5,7 +5,7 @@ import { Flaw } from "./flaws";
 import { Option } from "./option";
 import { Rune, RuneId } from "./runeId";
 
-export class Artifact {}
+export class Artifact { }
 
 export class Cenotaph extends Artifact {
   flaw: Flaw;

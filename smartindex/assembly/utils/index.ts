@@ -2,6 +2,7 @@ import { u128 } from "as-bignum/assembly";
 import { Box } from "./box";
 import { Option } from "../option";
 import { Field } from "../field";
+import { RuneId } from "../runeId";
 
 export function fieldToU128(data: Array<u128>): u128 {
   if (data.length === 0) return u128.from(0);
@@ -88,6 +89,22 @@ export function getFlag(fields: Map<u64, Array<u128>>, position: u64): bool {
   const flags = fieldToU128(fields.get(Field.FLAGS));
   //@ts-ignore
   return !u128.and(flags, u128.from(1) << (<i32>position)).isZero();
+}
+
+export function getMint(fields: Map<u64, Array<u128>>): Option<RuneId> {
+  if (!fields.has(Field.MINT)) {
+    return Option.None(RuneId.default());
+  }
+
+  const mint = fields.get(Field.MINT);
+  if (mint.length < 2) {
+    // skip if the runeId is not valid
+    return Option.None(RuneId.default());
+  }
+  const block = <u64>mint[0].lo;
+  const tx = <u32>mint[1].lo;
+
+  return Option.Some(new RuneId(block, tx));
 }
 
 export * from "./box";
