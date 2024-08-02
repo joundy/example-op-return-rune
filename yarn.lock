@@ -2,3 +2,11 @@
 # yarn lockfile v1
 
 
+"@east-bitcoin-lib/smartindex-sdk@file:../eastnode/smartindex-sdk":
+  version "1.1.0"
+  resolved "file:../eastnode/smartindex-sdk"
+  dependencies:
+    "@changesets/cli" "^2.27.7"
+    as-bignum "^0.3.1"
+    assemblyscript "^0.27.27"
+    assemblyscript-json "^1.1.0"

@@ -35,6 +35,7 @@ export class Vin {
 export class RuneTransaction {
   blockHeight: u64;
   index: u32;
+
   vins: Vin[];
   vouts: Vout[];
 

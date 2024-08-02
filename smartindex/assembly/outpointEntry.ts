@@ -33,27 +33,29 @@ export class OutpointEntry {
     this.amount = amount;
   }
 
-  static default() {
+  static default(): OutpointEntry {
     return changetype<OutpointEntry>(0);
   }
 
-  static get(address: string, hash: string, index: u32): Option<OutpointEntry> {
+  static get(hash: string, index: u32): Option<OutpointEntry[]> {
+    // TODO: multiple rows
+    //
     const r = outpoints.select([
-      new Column("address", address),
       new Column("hash", hash),
       new Column("index", index.toString()),
     ]);
     if (getResultFromJson(r, "error", "string").includes("no rows")) {
-      return Option.None(OutpointEntry.default());
+      return Option.None([OutpointEntry.default()]);
     }
 
     const block = <u64>parseInt(r.getString("block")!.valueOf());
     const tx = <u32>parseInt(r.getString("tx")!.valueOf());
     const amount = u128.from(r.getString("amount")!.valueOf());
+    const address = r.getString("address")!.valueOf();
 
-    return Option.Some(
+    return Option.Some([
       new OutpointEntry(block, tx, hash, index, address, amount),
-    );
+    ]);
   }
 
   static delete(address: string, hash: string, index: u32): void {
@@ -64,7 +66,7 @@ export class OutpointEntry {
     ]);
   }
 
-  store() {
+  store(): void {
     const insertData: TableSchema = [
       new Column("block", this.block.toString()),
       new Column("tx", this.tx.toString()),
