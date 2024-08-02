@@ -20,6 +20,11 @@ export class Vout {
     this.spender = spender;
     this.asmScripts = asmScripts;
   }
+  toString(): string {
+    let vinsStr = this.vins.map<string>((vin: Vin) => `Vin(txHash: ${vin.txHash}, index: ${vin.index})`).join(", ");
+    let voutsStr = this.vouts.map<string>((vout: Vout) => `Vout(txHash: ${vout.txHash}, index: ${vout.index}, spender: ${vout.spender}, asmScripts: [${vout.asmScripts.join(", ")}])`).join(", ");
+    return `RuneTransaction(blockHeight: ${this.blockHeight}, index: ${this.index}, vins: [${vinsStr}], vouts: [${voutsStr}])`;
+  }
 }
 
 export class Vin {
