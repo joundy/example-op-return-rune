@@ -11,7 +11,6 @@ import {
   getMint,
 } from "./utils";
 import { Edict } from "./edicts";
-import { RuneId } from "./runeId";
 import { Option } from "./option";
 import { Flaw } from "./flaws";
 import { Artifact, Cenotaph, Runestone } from "./artifact";
@@ -51,7 +50,7 @@ export class RunestoneParser {
       // - flaw: TRAILING_INTEGERS
       // - flaw: EDICT_RUNE_ID
       // - flaw: EDICT_OUTPUT
-      if (Field.BODY === 0) {
+      if (fieldKey === Field.BODY) {
         while (input.len > 0) {
           const edict = new StaticArray<u128>(4);
           for (let i = 0; i < 4; i++) {
