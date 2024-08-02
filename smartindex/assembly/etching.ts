@@ -16,7 +16,7 @@ export class Terms {
     heightStart: Option<u64>,
     heightEnd: Option<u64>,
     offsetStart: Option<u64>,
-    offsetEnd: Option<u64>
+    offsetEnd: Option<u64>,
   ) {
     this.amount = amount;
     this.cap = cap;
@@ -24,6 +24,10 @@ export class Terms {
     this.heightEnd = heightEnd;
     this.offsetStart = offsetStart;
     this.offsetEnd = offsetEnd;
+  }
+
+  static default(): Terms {
+    return changetype<Terms>(0);
   }
 }
 
@@ -43,7 +47,7 @@ export class Etching {
     spacers: Option<u32>,
     symbol: Option<string>,
     terms: Option<Terms>,
-    turbo: bool
+    turbo: bool,
   ) {
     this.divisibility = divisibility;
     this.premine = premine;
@@ -54,75 +58,94 @@ export class Etching {
     this.turbo = turbo;
   }
 
+  static default(): Etching {
+    return changetype<Etching>(0);
+  }
+
   inspectJson(): string {
     const encoder = new JSONEncoder();
     encoder.pushObject("etching");
 
-    if (this.divisibility.isSome) {
-      encoder.setInteger("divisibility", this.divisibility.some);
+    if (this.divisibility.isSome()) {
+      encoder.setInteger("divisibility", this.divisibility.unwrap());
     } else {
       encoder.setNull("divisibility");
     }
 
-    if (this.premine.isSome) {
-      encoder.setString("premine", this.premine.some.toString());
+    if (this.premine.isSome()) {
+      encoder.setString("premine", this.premine.unwrap().toString());
     } else {
       encoder.setNull("premine");
     }
 
-    if (this.rune.isSome) {
-      encoder.setString("rune", this.rune.some);
+    if (this.rune.isSome()) {
+      encoder.setString("rune", this.rune.unwrap());
     } else {
       encoder.setNull("rune");
     }
 
-    if (this.spacers.isSome) {
-      encoder.setInteger("spacers", this.spacers.some);
+    if (this.spacers.isSome()) {
+      encoder.setInteger("spacers", this.spacers.unwrap());
     } else {
       encoder.setNull("spacers");
     }
 
-    if (this.symbol.isSome) {
-      encoder.setString("symbol", this.symbol.some);
+    if (this.symbol.isSome()) {
+      encoder.setString("symbol", this.symbol.unwrap());
     } else {
       encoder.setNull("symbol");
     }
 
-    if (this.terms.isSome) {
+    if (this.terms.isSome()) {
       encoder.pushObject("terms");
 
-      if (this.terms.some.amount.isSome) {
-        encoder.setString("amount", this.terms.some.amount.some.toString());
+      if (this.terms.unwrap().amount.isSome()) {
+        encoder.setString(
+          "amount",
+          this.terms.unwrap().amount.unwrap().toString(),
+        );
       } else {
         encoder.setNull("amount");
       }
 
-      if (this.terms.some.cap.isSome) {
-        encoder.setString("cap", this.terms.some.cap.some.toString());
+      if (this.terms.unwrap().cap.isSome()) {
+        encoder.setString("cap", this.terms.unwrap().cap.unwrap().toString());
       } else {
         encoder.setNull("cap");
       }
 
-      if (this.terms.some.heightStart.isSome) {
-        encoder.setInteger("height_start", this.terms.some.heightStart.some);
+      if (this.terms.unwrap().heightStart.isSome()) {
+        encoder.setInteger(
+          "height_start",
+          this.terms.unwrap().heightStart.unwrap(),
+        );
       } else {
         encoder.setNull("height_start");
       }
 
-      if (this.terms.some.heightEnd.isSome) {
-        encoder.setInteger("height_end", this.terms.some.heightEnd.some);
+      if (this.terms.unwrap().heightEnd.isSome()) {
+        encoder.setInteger(
+          "height_end",
+          this.terms.unwrap().heightEnd.unwrap(),
+        );
       } else {
         encoder.setNull("height_end");
       }
 
-      if (this.terms.some.offsetStart.isSome) {
-        encoder.setInteger("offset_start", this.terms.some.offsetStart.some);
+      if (this.terms.unwrap().offsetStart.isSome()) {
+        encoder.setInteger(
+          "offset_start",
+          this.terms.unwrap().offsetStart.unwrap(),
+        );
       } else {
         encoder.setNull("offset_start");
       }
 
-      if (this.terms.some.offsetEnd.isSome) {
-        encoder.setInteger("offset_end", this.terms.some.offsetEnd.some);
+      if (this.terms.unwrap().offsetEnd.isSome()) {
+        encoder.setInteger(
+          "offset_end",
+          this.terms.unwrap().offsetEnd.unwrap(),
+        );
       } else {
         encoder.setNull("offset_end");
       }

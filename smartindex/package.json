@@ -4,7 +4,6 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
-    "@east-bitcoin-lib/smartindex-sdk": "^1.0.0",
     "as-hex": "^1.0.1",
     "assemblyscript": "^0.27.28",
     "assemblyscript-json": "^1.1.0"
