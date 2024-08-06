@@ -3,6 +3,7 @@ import {
   Column,
   ptrToString,
   getResultFromJson,
+  consoleLog,
 } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 import { getTxsByBlockHeight } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
 import { RuneTransaction, Vin } from "./transaction";
@@ -11,6 +12,9 @@ import { RuneId } from "./runeId";
 import { u128 } from "as-bignum/assembly";
 import { Option } from "./option";
 import { OutpointEntry } from "./outpointEntry";
+import { RunestoneParser } from "./runestone";
+import { decodeHex } from "./utils";
+import { Cenotaph, Runestone } from "./artifact";
 export { allocate } from "@east-bitcoin-lib/smartindex-sdk/assembly/external";
 
 class Minted {
@@ -80,16 +84,16 @@ class RuneUpdater {
       return Option.None(RuneUpdater.default());
     }
 
-    // const artifact = RunestoneParser.dechiper(decodeHex(runeData.unwrap()));
-    //
-    // if (artifact instanceof Cenotaph) {
-    //   // TODO:
-    //   throw new Error("errors.cenotaph");
-    // }
-    //
-    // const runestone = artifact as Runestone;
-    // consoleLog(runestone.etching.unwrap().rune.unwrap());
-    //
+    const artifact = RunestoneParser.dechiper(decodeHex(runeData.unwrap()));
+
+    if (artifact instanceof Cenotaph) {
+      // TODO:
+      throw new Error("errors.cenotaph");
+    }
+
+    const runestone = artifact as Runestone;
+    consoleLog(runestone.etching.unwrap().rune.unwrap());
+
     return Option.None(RuneUpdater.default());
   }
 

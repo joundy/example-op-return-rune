@@ -69,9 +69,76 @@ export class RuneEntry {
     this.offsetEnd = offsetEnd;
   }
 
-  store() {
-    // TODO: validate is alreadyn etched or not
+  // TODO: error
+  // MintError::Cap(cap) => write!(f, "limited to {cap} mints"),
+  // MintError::End(end) => write!(f, "mint ended on block {end}"),
+  // MintError::Start(start) => write!(f, "mint starts on block {start}"),
+  // MintError::Unmintable => write!(f, "not mintable"),
+  mintable(height: u64): Option<u128> {
+    if (!this.terms) {
+      return Option.None(u128.from(0));
+    }
 
+    let startRelative: Option<u64> = Option.None(<u64>0);
+    if (this.offsetStart.isSome()) {
+      startRelative = Option.Some(
+        <u64>(this.offsetStart.unwrap() + this.block),
+      );
+    }
+    const startAbsolute: Option<u64> = this.heightStart;
+
+    let start: Option<u64> = Option.None(<u64>0);
+    if (startRelative.isSome() || startAbsolute.isSome()) {
+      start = Option.Some(
+        <u64>(
+          Math.max(
+            startRelative.isNone() ? -1 : startRelative.unwrap(),
+            startAbsolute.isNone() ? -1 : startAbsolute.unwrap(),
+          )
+        ),
+      );
+    }
+
+    if (start.isSome()) {
+      if (height < start.unwrap()) {
+        return Option.None(u128.from(0));
+      }
+    }
+
+    let endRelative: Option<u64> = Option.None(<u64>0);
+    if (this.offsetEnd.isSome()) {
+      endRelative = Option.Some(<u64>(this.offsetEnd.unwrap() + this.block));
+    }
+    const endAbsolute: Option<u64> = this.heightEnd;
+    let end: Option<u64> = Option.None(<u64>0);
+    if (endRelative.isSome() || endAbsolute.isSome()) {
+      end = Option.Some(
+        <u64>(
+          Math.max(
+            endRelative.isNone() ? -1 : endRelative.unwrap(),
+            endAbsolute.isNone() ? -1 : endAbsolute.unwrap(),
+          )
+        ),
+      );
+    }
+
+    if (end.isSome()) {
+      if (height >= end.unwrap()) {
+        return Option.None(u128.from(0));
+      }
+    }
+
+    const cap = this.cap.unwrapOr(u128.from(0));
+
+    if (this.minted >= cap) {
+      return Option.None(u128.from(0));
+    }
+
+    return Option.Some(this.amount.unwrapOr(u128.from(0)));
+  }
+
+  store() {
+    // TODO: validate is already etched or not
     const insertData: TableSchema = [
       new Column("block", this.block.toString()),
       new Column("tx", this.tx.toString()),
