@@ -58,9 +58,8 @@ export class OutpointEntry {
     ]);
   }
 
-  static delete(address: string, hash: string, index: u32): void {
+  static delete(hash: string, index: u32): void {
     outpoints.delete([
-      new Column("address", address),
       new Column("hash", hash),
       new Column("index", index.toString()),
     ]);

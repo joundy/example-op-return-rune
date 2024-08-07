@@ -43,7 +43,7 @@ class RuneUpdater {
   etching: Option<Etching>;
   unallocated: Map<RuneId, u128>;
   allocated: Array<Map<RuneId, u128>>;
-  minted: u128;
+  minted: u32;
   burned: Burned[];
 
   constructor(runeTx: RuneTransaction) {
@@ -55,7 +55,7 @@ class RuneUpdater {
       return new Map<RuneId, u128>();
     });
 
-    this.minted = u128.from(0);
+    this.minted = 0;
     this.burned = [];
   }
 
@@ -182,6 +182,58 @@ class RuneUpdater {
     return Option.None(RuneUpdater.default());
   }
 
+  commit(): void {
+    // TODO:
+    // - commit using db transaction / dolt commit
+    // - burned
+
+    // etching
+    if (this.etching.isSome()) {
+      const runeEntry = RuneEntry.fromEtching(
+        this.runeTx.blockHeight,
+        this.runeTx.index,
+        this.etching.unwrap(),
+      );
+      runeEntry.store();
+    }
+
+    // minted
+    for (let i = <u32>0; i < this.minted; i++) {
+      RuneEntry.incMinted(this.runeTx.blockHeight, this.runeTx.index);
+    }
+
+    // edict, minted amount
+    // outpoints
+
+    // invalidate or remove previous outpoints or unallocate
+    for (let i = 0; i < this.runeTx.vins.length; i++) {
+      const vin = this.runeTx.vins[i];
+      OutpointEntry.delete(vin.txHash, vin.index);
+    }
+
+    for (let i = 0; i < this.allocated.length; i++) {
+      const vout = this.runeTx.vouts[i];
+      const allocated = this.allocated[i];
+      const keys = allocated.keys();
+
+      for (let j = 0; j < keys.length; j++) {
+        const runeId = keys[j];
+        const amount = allocated.get(runeId);
+
+        const outputEntry = new OutpointEntry(
+          runeId.block,
+          runeId.tx,
+          vout.txHash,
+          vout.index,
+          vout.spender,
+          amount,
+        );
+
+        outputEntry.store();
+      }
+    }
+  }
+
   private mint(runeId: RuneId): Option<u128> {
     const runeEntry = RuneEntry.getByRuneId(runeId);
     if (runeEntry.isNone()) {
@@ -193,7 +245,7 @@ class RuneUpdater {
       return Option.Some(u128.from(0));
     }
 
-    this.minted = u128.from(1);
+    this.minted += 1;
 
     return amount;
   }
@@ -257,6 +309,7 @@ function _getUnallocated(vins: Vin[]): Map<RuneId, u128> {
 function _processRune(runeTx: RuneTransaction): void {
   const runeUpdater = new RuneUpdater(runeTx);
   runeUpdater.index();
+  runeUpdater.commit();
 }
 
 export function init(): void {

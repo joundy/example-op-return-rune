@@ -9,6 +9,7 @@ import { TableSchema } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
 import { Obj } from "assemblyscript-json/assembly/JSON";
 import { Rune } from "./rune";
 import { RuneId } from "./runeId";
+import { Etching } from "./etching";
 
 export class RuneEntry {
   block: u64;
@@ -214,7 +215,91 @@ export class RuneEntry {
     runeEntries.insert(insertData);
   }
 
-  update(): void {}
+  static incMinted(block: u64, tx: u32): Option<u128> {
+    const r = runeEntries.select([
+      new Column("block", block.toString()),
+      new Column("tx", tx.toString()),
+    ]);
+    if (getResultFromJson(r, "error", "string").includes("no rows")) {
+      return Option.None(u128.from(0));
+    }
+
+    const minted = u128.from(r.getString("minted")!.valueOf());
+    const increased = u128.add(minted, u128.from(1));
+
+    runeEntries.update(
+      [new Column("block", block.toString()), new Column("tx", tx.toString())],
+      [new Column("minted", increased.toString())],
+    );
+
+    return Option.Some(increased);
+  }
+
+  static incBurned(block: u64, tx: u32): Option<u128> {
+    const r = runeEntries.select([
+      new Column("block", block.toString()),
+      new Column("tx", tx.toString()),
+    ]);
+    if (getResultFromJson(r, "error", "string").includes("no rows")) {
+      return Option.None(u128.from(0));
+    }
+
+    const burned = u128.from(r.getString("burned")!.valueOf());
+    const increased = u128.add(burned, u128.from(1));
+
+    runeEntries.update(
+      [new Column("block", block.toString()), new Column("tx", tx.toString())],
+      [new Column("burned", increased.toString())],
+    );
+
+    return Option.Some(increased);
+  }
+
+  static fromEtching(block: u64, tx: u32, etching: Etching): RuneEntry {
+    const minted = u128.from(0);
+    const burned = u128.from(0);
+
+    let isTerms = false;
+    let amount = Option.None(u128.from(0));
+    let cap = Option.None(u128.from(0));
+    let heightStart = Option.None(<u64>0);
+    let heightEnd = Option.None(<u64>0);
+    let offsetStart = Option.None(<u64>0);
+    let offsetEnd = Option.None(<u64>0);
+
+    if (etching.terms.isSome()) {
+      isTerms = true;
+
+      const terms = etching.terms.unwrap();
+
+      amount = terms.amount;
+      cap = terms.cap;
+      heightStart = terms.heightStart;
+      heightEnd = terms.heightEnd;
+      offsetStart = terms.offsetStart;
+      offsetEnd = terms.offsetEnd;
+    }
+
+    return new RuneEntry(
+      block,
+      tx,
+      minted,
+      burned,
+      etching.divisibility,
+      etching.premine,
+      etching.rune,
+      etching.spacers,
+      etching.symbol,
+      etching.turbo,
+      isTerms,
+      amount,
+      cap,
+      heightStart,
+      heightEnd,
+      offsetStart,
+      offsetEnd,
+    );
+  }
 
   static default(): RuneEntry {
     return changetype<RuneEntry>(0);
@@ -223,8 +308,8 @@ export class RuneEntry {
   static decodeRuneEntry(r: Obj): Option<RuneEntry> {
     const block = <u64>parseInt(r.getString("block")!.valueOf());
     const tx = <u32>parseInt(r.getString("tx")!.valueOf());
-    const minted = u128.from(r.getString("tx")!.valueOf());
-    const burned = u128.from(r.getString("tx")!.valueOf());
+    const minted = u128.from(r.getString("minted")!.valueOf());
+    const burned = u128.from(r.getString("burned")!.valueOf());
 
     let rune: Option<Rune> = Option.None(Rune.default());
     if (r.has("rune")) {
