@@ -17,6 +17,7 @@ import { Cenotaph, Runestone } from "./artifact";
 import { Network } from "./constants";
 import { Rune } from "./rune";
 import { RuneEntry } from "./runeEntry";
+import { Etching } from "./etching";
 export { allocate } from "@east-bitcoin-lib/smartindex-sdk/assembly/external";
 
 // TODO: remove hardcoded network
@@ -39,6 +40,7 @@ class Burned {
 class RuneUpdater {
   runeTx: RuneTransaction;
 
+  etching: Option<Etching>;
   unallocated: Map<RuneId, u128>;
   allocated: Array<Map<RuneId, u128>>;
   minted: u128;
@@ -47,14 +49,39 @@ class RuneUpdater {
   constructor(runeTx: RuneTransaction) {
     this.runeTx = runeTx;
 
+    this.etching = Option.None(Etching.default());
     this.unallocated = _getUnallocated(runeTx.vins);
-    this.allocated = [];
+    this.allocated = runeTx.vouts.map((): Map<RuneId, u128> => {
+      return new Map<RuneId, u128>();
+    });
+
     this.minted = u128.from(0);
     this.burned = [];
   }
 
   static default(): RuneUpdater {
     return changetype<RuneUpdater>(0);
+  }
+
+  allocate(
+    runeId: RuneId,
+    balance: u128,
+    amount: u128,
+    output: u32,
+  ): Option<u128> {
+    if (!u128.gt(amount, u128.from(0))) {
+      return Option.None(u128.from(0));
+    }
+    balance = u128.sub(balance, amount);
+
+    const outputAllocated = this.allocated[output];
+    let outputAmount = u128.from(0);
+    if (outputAllocated.has(runeId)) {
+      outputAmount = u128.add(outputAllocated.get(runeId), amount);
+    }
+
+    this.allocated[output].set(runeId, outputAmount);
+    return Option.Some(balance);
   }
 
   index(): Option<RuneUpdater> {
@@ -102,14 +129,14 @@ class RuneUpdater {
       }
     }
 
+    // EDICTS / TRANSFERS
     for (let i = 0; i < runestone.edicts.length; i++) {
       const edict = runestone.edicts[i];
-      if (edict.output > <u32>this.runeTx.vouts.length - 1) {
+      if (edict.output >= <u32>this.runeTx.vouts.length) {
         // TODO: validate the edict output when parsing the data
         throw new Error("errors.edict output is not valid");
       }
 
-      // default rune id
       let _runeId = Option.None(RuneId.default());
       if (edict.runeId.tx === 0 && edict.runeId.block === 0) {
         if (etched.isSome()) {
@@ -122,7 +149,6 @@ class RuneUpdater {
       } else {
         _runeId = Option.Some(edict.runeId);
       }
-
       const runeId = _runeId.unwrap();
 
       let _balance = Option.None(u128.from(0));
@@ -132,13 +158,28 @@ class RuneUpdater {
         continue;
       }
       const balance = _balance.unwrap();
+
+      if (edict.output === <u32>this.runeTx.vouts.length) {
+        // TODO: handle divide balance into all outputs
+      } else {
+        let amount = edict.amount;
+        if (u128.eq(amount, u128.from(0)) || u128.lt(balance, amount)) {
+          amount = balance;
+        }
+
+        this.allocate(runeId, balance, amount, edict.output);
+      }
     }
 
-    return Option.None(RuneUpdater.default());
-  }
+    if (etched.isSome()) {
+      this.etching = runestone.etching;
+    }
 
-  commit(): void {
-    // TODO: commit transaction
+    // TODO:
+    // - handle burned
+    // - pointer pointing into ...
+
+    return Option.None(RuneUpdater.default());
   }
 
   private mint(runeId: RuneId): Option<u128> {
@@ -216,7 +257,6 @@ function _getUnallocated(vins: Vin[]): Map<RuneId, u128> {
 function _processRune(runeTx: RuneTransaction): void {
   const runeUpdater = new RuneUpdater(runeTx);
   runeUpdater.index();
-  runeUpdater.commit();
 }
 
 export function init(): void {
