@@ -73,28 +73,65 @@ class RuneUpdater {
       throw new Error("errors.cenotaph");
     }
 
-    const runeId = new RuneId(this.runeTx.blockHeight, this.runeTx.index);
-
     const runestone = artifact as Runestone;
+
+    // MINT
     if (runestone.mint.isSome()) {
       const runeId = runestone.mint.unwrap();
       const amount = this.mint(runeId);
-      if (amount.isSome()) {
+      if (amount.isSome() && this.unallocated.has(runeId)) {
         let prev = this.unallocated.get(runeId);
         this.unallocated.set(runeId, u128.add(prev, amount.unwrap()));
       }
     }
 
+    // CHECK IS ETCHED
     const etched = this.etched(runestone);
 
+    // PREMINE
     if (etched.isSome()) {
       if (runestone.etching.unwrap().premine.isSome()) {
-        let prev = this.unallocated.get(runeId);
-        this.unallocated.set(
-          runeId,
-          u128.add(prev, runestone.etching.unwrap().premine.unwrap()),
-        );
+        const runeId = new RuneId(this.runeTx.blockHeight, this.runeTx.index);
+        if (this.unallocated.has(runeId)) {
+          let prev = this.unallocated.get(runeId);
+          this.unallocated.set(
+            runeId,
+            u128.add(prev, runestone.etching.unwrap().premine.unwrap()),
+          );
+        }
       }
+    }
+
+    for (let i = 0; i < runestone.edicts.length; i++) {
+      const edict = runestone.edicts[i];
+      if (edict.output > <u32>this.runeTx.vouts.length - 1) {
+        // TODO: validate the edict output when parsing the data
+        throw new Error("errors.edict output is not valid");
+      }
+
+      // default rune id
+      let _runeId = Option.None(RuneId.default());
+      if (edict.runeId.tx === 0 && edict.runeId.block === 0) {
+        if (etched.isSome()) {
+          _runeId = Option.Some(
+            new RuneId(this.runeTx.blockHeight, this.runeTx.index),
+          );
+        } else {
+          continue;
+        }
+      } else {
+        _runeId = Option.Some(edict.runeId);
+      }
+
+      const runeId = _runeId.unwrap();
+
+      let _balance = Option.None(u128.from(0));
+      if (this.unallocated.has(runeId)) {
+        _balance = Option.Some(this.unallocated.get(runeId));
+      } else {
+        continue;
+      }
+      const balance = _balance.unwrap();
     }
 
     return Option.None(RuneUpdater.default());
