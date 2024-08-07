@@ -1,5 +1,6 @@
-import { u128 } from "as-bignum";
-import { Network, SUBSIDY_HALVING_INTERVAL } from "./constants";
+import { u128 } from "as-bignum/assembly";
+import { Network, RESERVED_RUNE, SUBSIDY_HALVING_INTERVAL } from "./constants";
+import { RuneId } from "./runeId";
 
 const STEPS: u128[] = [
   u128.from("0"),
@@ -84,21 +85,19 @@ export class Rune {
     return new Rune(number);
   }
 
-  toString(): string {
-    let _value = this.value;
+  static default(): Rune {
+    return new Rune(u128.from(0));
+  }
 
-    _value = u128.add(_value, u128.from(1));
-    let str = "";
-    while (u128.gt(_value, u128.from(0))) {
-      const index = u128
-        .rem(u128.sub(_value, u128.from(1)), u128.from(26))
-        .toU32();
-      str += "ABCDEFGHIJKLMNOPQRSTUVWXYZ".charAt(index);
+  isReserved(): bool {
+    return u128.ge(this.value, RESERVED_RUNE);
+  }
 
-      _value = u128.div(u128.sub(_value, u128.from(1)), u128.from(26));
-    }
-
-    return str.split("").reverse().join("");
+  static reserved(runeId: RuneId): Rune {
+    const block = u128.from(runeId.block);
+    const tx = u128.from(runeId.tx);
+    const reserve = u128.or(u128.shl(block, 32), tx);
+    return new Rune(u128.add(RESERVED_RUNE, reserve));
   }
 
   commitBuffer(): ArrayBuffer {
@@ -116,5 +115,26 @@ export class Rune {
     u8array.set(arr);
 
     return u8array.buffer;
+  }
+
+  toString(): string {
+    let _value = this.value;
+
+    _value = u128.add(_value, u128.from(1));
+    let str = "";
+    while (u128.gt(_value, u128.from(0))) {
+      const index = u128
+        .rem(u128.sub(_value, u128.from(1)), u128.from(26))
+        .toU32();
+      str += "ABCDEFGHIJKLMNOPQRSTUVWXYZ".charAt(index);
+
+      _value = u128.div(u128.sub(_value, u128.from(1)), u128.from(26));
+    }
+
+    return str.split("").reverse().join("");
+  }
+
+  toValue(): u128 {
+    return this.value;
   }
 }

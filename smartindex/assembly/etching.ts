@@ -1,6 +1,7 @@
 import { u128 } from "as-bignum/assembly";
 import { JSONEncoder } from "assemblyscript-json/assembly";
 import { Option } from "./option";
+import { Rune } from "./rune";
 
 export class Terms {
   amount: Option<u128>;
@@ -34,7 +35,7 @@ export class Terms {
 export class Etching {
   divisibility: Option<u8>;
   premine: Option<u128>;
-  rune: Option<string>;
+  rune: Option<Rune>;
   spacers: Option<u32>;
   symbol: Option<string>;
   terms: Option<Terms>;
@@ -43,7 +44,7 @@ export class Etching {
   constructor(
     divisibility: Option<u8>,
     premine: Option<u128>,
-    rune: Option<string>,
+    rune: Option<Rune>,
     spacers: Option<u32>,
     symbol: Option<string>,
     terms: Option<Terms>,
@@ -79,7 +80,7 @@ export class Etching {
     }
 
     if (this.rune.isSome()) {
-      encoder.setString("rune", this.rune.unwrap());
+      encoder.setString("rune", this.rune.unwrap().toString());
     } else {
       encoder.setNull("rune");
     }

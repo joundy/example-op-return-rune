@@ -4,29 +4,6 @@ import { Option } from "../option";
 import { Field } from "../field";
 import { RuneId } from "../runeId";
 
-export function fieldToU128(data: Array<u128>): u128 {
-  if (data.length === 0) return u128.from(0);
-  return data[0];
-}
-
-export function fieldToName(data: u128): string {
-  const TWENTY_SIX = u128.from(26);
-
-  //@ts-ignore
-  let v = data + u128.from(1);
-  let str = "";
-  while (!v.isZero()) {
-    //@ts-ignore
-    let y = (v % TWENTY_SIX).toU32();
-    if (y == 0) y = 26;
-    str = String.fromCharCode(64 + y) + str;
-    v--;
-    //@ts-ignore
-    v = v / TWENTY_SIX;
-  }
-  return str;
-}
-
 export function padLeft(v: string, n: i32): string {
   let result = "";
   for (let i: i32 = 0; i < n - v.length; i++) {
@@ -60,6 +37,11 @@ export function readULEB128ToU128(buf: Box, to: u128): usize {
   to.hi = result.hi;
   to.lo = result.lo;
   return slice.start - buf.start;
+}
+
+export function fieldToU128(data: Array<u128>): u128 {
+  if (data.length === 0) return u128.from(0);
+  return data[0];
 }
 
 export function getFieldValue<T>(

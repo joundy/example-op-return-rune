@@ -2,7 +2,6 @@ import { u128 } from "as-bignum/assembly";
 import { Field } from "./field";
 import { Flag } from "./flag";
 import {
-  fieldToName,
   readULEB128ToU128,
   Box,
   getFieldValue,
@@ -15,6 +14,7 @@ import { Option } from "./option";
 import { Flaw } from "./flaws";
 import { Artifact, Cenotaph, Runestone } from "./artifact";
 import { Etching, Terms } from "./etching";
+import { Rune } from "./rune";
 
 export class RunestoneParser {
   fields: Map<u64, Array<u128>>;
@@ -82,10 +82,10 @@ export class RunestoneParser {
     if (getFlag(fields, Flag.ETCHING)) {
       const divisibility = getFieldValue<u8>(fields, Field.DIVISIBILITY);
       const premine = getFieldValueU128(fields, Field.PREMINE);
-      let rune = Option.None("");
+      let rune = Option.None(Rune.default());
       const runeValue = getFieldValueU128(fields, Field.RUNE);
       if (runeValue.isSome()) {
-        rune = Option.Some(fieldToName(runeValue.unwrap()));
+        rune = Option.Some(new Rune(runeValue.unwrap()));
       }
       const spacers = getFieldValue<u32>(fields, Field.SPACERS);
       let symbol = Option.None("");

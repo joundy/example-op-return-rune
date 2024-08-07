@@ -6,6 +6,9 @@ import {
   getResultFromJson,
 } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 import { TableSchema } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
+import { Obj } from "assemblyscript-json/assembly/JSON";
+import { Rune } from "./rune";
+import { RuneId } from "./runeId";
 
 export class RuneEntry {
   block: u64;
@@ -16,7 +19,7 @@ export class RuneEntry {
 
   divisibility: Option<u8>;
   premine: Option<u128>;
-  rune: Option<string>;
+  rune: Option<Rune>;
   spacers: Option<u32>;
   symbol: Option<string>;
   turbo: bool;
@@ -36,7 +39,7 @@ export class RuneEntry {
     burned: u128,
     divisibility: Option<u8>,
     premine: Option<u128>,
-    rune: Option<string>,
+    rune: Option<Rune>,
     spacers: Option<u32>,
     symbol: Option<string>,
     turbo: bool,
@@ -92,8 +95,8 @@ export class RuneEntry {
       start = Option.Some(
         <u64>(
           Math.max(
-            startRelative.isNone() ? -1 : startRelative.unwrap(),
-            startAbsolute.isNone() ? -1 : startAbsolute.unwrap(),
+            startRelative.isNone() ? -1 : f64(startRelative.unwrap()),
+            startAbsolute.isNone() ? -1 : f64(startAbsolute.unwrap()),
           )
         ),
       );
@@ -115,8 +118,8 @@ export class RuneEntry {
       end = Option.Some(
         <u64>(
           Math.max(
-            endRelative.isNone() ? -1 : endRelative.unwrap(),
-            endAbsolute.isNone() ? -1 : endAbsolute.unwrap(),
+            endRelative.isNone() ? -1 : f64(endRelative.unwrap()),
+            endAbsolute.isNone() ? -1 : f64(endAbsolute.unwrap()),
           )
         ),
       );
@@ -137,7 +140,7 @@ export class RuneEntry {
     return Option.Some(this.amount.unwrapOr(u128.from(0)));
   }
 
-  store() {
+  store(): void {
     // TODO: validate is already etched or not
     const insertData: TableSchema = [
       new Column("block", this.block.toString()),
@@ -157,7 +160,7 @@ export class RuneEntry {
     }
 
     if (this.rune.isSome()) {
-      insertData.push(new Column("rune", this.rune.unwrap()));
+      insertData.push(new Column("rune", this.rune.unwrap().value.toString()));
     }
 
     if (this.spacers.isSome()) {
@@ -211,26 +214,27 @@ export class RuneEntry {
     runeEntries.insert(insertData);
   }
 
-  update() { }
+  update(): void {}
 
-  static default() {
+  static default(): RuneEntry {
     return changetype<RuneEntry>(0);
   }
 
-  static getByRune(_rune: string): Option<RuneEntry> {
-    const r = runeEntries.select([new Column("rune", _rune)]);
-    if (getResultFromJson(r, "error", "string").includes("no rows")) {
-      return Option.None(RuneEntry.default());
-    }
-
+  static decodeRuneEntry(r: Obj): Option<RuneEntry> {
     const block = <u64>parseInt(r.getString("block")!.valueOf());
     const tx = <u32>parseInt(r.getString("tx")!.valueOf());
     const minted = u128.from(r.getString("tx")!.valueOf());
     const burned = u128.from(r.getString("tx")!.valueOf());
 
-    const rune: Option<string> = Option.Some(_rune);
+    let rune: Option<Rune> = Option.None(Rune.default());
+    if (r.has("rune")) {
+      const d = r.getString("rune");
+      if (d) {
+        rune = Option.Some(new Rune(u128.from(d.valueOf())));
+      }
+    }
 
-    let divisibility: Option<u8> = Option.Some(<u8>0);
+    let divisibility: Option<u8> = Option.None(<u8>0);
     if (r.has("divisibility")) {
       const d = r.getString("divisibility");
       if (d) {
@@ -340,5 +344,26 @@ export class RuneEntry {
         offsetEnd,
       ),
     );
+  }
+
+  static getByRune(rune: Rune): Option<RuneEntry> {
+    const r = runeEntries.select([new Column("rune", rune.value.toString())]);
+    if (getResultFromJson(r, "error", "string").includes("no rows")) {
+      return Option.None(RuneEntry.default());
+    }
+
+    return this.decodeRuneEntry(r);
+  }
+
+  static getByRuneId(runeId: RuneId): Option<RuneEntry> {
+    const r = runeEntries.select([
+      new Column("block", runeId.block.toString()),
+      new Column("tx", runeId.tx.toString()),
+    ]);
+    if (getResultFromJson(r, "error", "string").includes("no rows")) {
+      return Option.None(RuneEntry.default());
+    }
+
+    return this.decodeRuneEntry(r);
   }
 }

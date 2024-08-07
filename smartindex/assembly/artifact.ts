@@ -3,9 +3,10 @@ import { Edict } from "./edicts";
 import { Etching } from "./etching";
 import { Flaw } from "./flaws";
 import { Option } from "./option";
-import { Rune, RuneId } from "./runeId";
+import { RuneId } from "./runeId";
+import { Rune } from "./rune";
 
-export class Artifact { }
+export class Artifact {}
 
 export class Cenotaph extends Artifact {
   flaw: Flaw;
