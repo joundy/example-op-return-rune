@@ -4,18 +4,6 @@ import { Option } from "../option";
 import { Field } from "../field";
 import { RuneId } from "../runeId";
 
-export function padLeft(v: string, n: i32): string {
-  let result = "";
-  for (let i: i32 = 0; i < n - v.length; i++) {
-    result += "0";
-  }
-  return result + v;
-}
-
-export function u128ToHex(v: u128): string {
-  return padLeft(v.hi.toString(16), 16) + padLeft(v.lo.toString(16), 16);
-}
-
 export function readULEB128ToU128(buf: Box, to: u128): usize {
   const slice = buf.sliceFrom(0);
   let shift: i32 = 0;
