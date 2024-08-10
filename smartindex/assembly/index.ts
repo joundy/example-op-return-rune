@@ -3,6 +3,7 @@ import {
   Column,
   ptrToString,
   getResultFromJson,
+  consoleLog,
 } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 import { getTxsByBlockHeight } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
 import { RuneTransaction, Vin } from "./transaction";
@@ -43,7 +44,7 @@ class RuneUpdater {
   etching: Option<Etching>;
   unallocated: Map<RuneId, u128>;
   allocated: Array<Map<RuneId, u128>>;
-  minted: u32;
+  minted: Option<RuneId>;
   burned: Burned[];
 
   constructor(runeTx: RuneTransaction) {
@@ -55,7 +56,7 @@ class RuneUpdater {
       return new Map<RuneId, u128>();
     });
 
-    this.minted = 0;
+    this.minted = Option.None(RuneId.default());
     this.burned = [];
   }
 
@@ -84,14 +85,14 @@ class RuneUpdater {
     return Option.Some(balance);
   }
 
-  index(): Option<RuneUpdater> {
+  index(): void {
     const runeData = this.runeTx.runeData;
     if (!runeData.isSome()) {
-      return Option.None(RuneUpdater.default());
+      return;
     }
 
-    const artifact = RunestoneParser.dechiper(decodeHex(runeData.unwrap()));
-
+    let dataBuffer = decodeHex(runeData.unwrap());
+    const artifact = RunestoneParser.dechiper(dataBuffer);
     if (artifact instanceof Cenotaph) {
       // TODO:
       // - etching
@@ -103,18 +104,23 @@ class RuneUpdater {
     const runestone = artifact as Runestone;
 
     // MINT
+    consoleLog("CHECK MINT");
     if (runestone.mint.isSome()) {
+      consoleLog("CHECK MINT IS SOMEEEE");
       const runeId = runestone.mint.unwrap();
       const amount = this.mint(runeId);
-      if (amount.isSome() && this.unallocated.has(runeId)) {
-        let prev = this.unallocated.get(runeId);
-        this.unallocated.set(runeId, u128.add(prev, amount.unwrap()));
+
+      if (amount.isSome()) {
+        if (this.unallocated.has(runeId)) {
+          let prev = this.unallocated.get(runeId);
+          this.unallocated.set(runeId, u128.add(prev, amount.unwrap()));
+        } else {
+          this.unallocated.set(runeId, amount.unwrap());
+        }
       }
     }
-
     // CHECK IS ETCHED
     const etched = this.etched(runestone);
-
     // PREMINE
     if (etched.isSome()) {
       if (runestone.etching.unwrap().premine.isSome()) {
@@ -125,10 +131,14 @@ class RuneUpdater {
             runeId,
             u128.add(prev, runestone.etching.unwrap().premine.unwrap()),
           );
+        } else {
+          this.unallocated.set(
+            runeId,
+            runestone.etching.unwrap().premine.unwrap(),
+          );
         }
       }
     }
-
     // EDICTS / TRANSFERS
     for (let i = 0; i < runestone.edicts.length; i++) {
       const edict = runestone.edicts[i];
@@ -170,16 +180,48 @@ class RuneUpdater {
         this.allocate(runeId, balance, amount, edict.output);
       }
     }
-
     if (etched.isSome()) {
       this.etching = runestone.etching;
     }
 
     // TODO:
     // - handle burned
-    // - pointer pointing into ...
 
-    return Option.None(RuneUpdater.default());
+    let pointer = runestone.pointer;
+    if (pointer.isSome() && pointer.unwrap() >= <u32>this.allocated.length) {
+      throw new Error("errors.pointer index is not valid");
+    }
+    if (pointer.isNone()) {
+      // find first non op_return output index
+      for (let i = 0; i < this.runeTx.vouts.length; i++) {
+        const vout = this.runeTx.vouts[i];
+        if (vout.asmScripts.length > 1 && vout.asmScripts[0] == "OP_RETURN") {
+          continue;
+        }
+        pointer = Option.Some(<u32>i);
+      }
+    }
+    if (pointer.isSome()) {
+      const unallocatedKeys = this.unallocated.keys();
+      for (let i = 0; i < unallocatedKeys.length; i++) {
+        const runeId = unallocatedKeys[i];
+        const balance = this.unallocated.get(runeId);
+
+        const allocatedIndex = this.allocated[pointer.unwrap()];
+
+        if (allocatedIndex.has(runeId)) {
+          let prev = allocatedIndex.get(runeId);
+          allocatedIndex.set(runeId, u128.add(prev, balance));
+        } else {
+          allocatedIndex.set(runeId, balance);
+        }
+
+        this.allocated[pointer.unwrap()] = allocatedIndex;
+        this.unallocated.delete(runeId);
+      }
+    } else {
+      // TODO: oterwise burn the balance
+    }
   }
 
   commit(): void {
@@ -198,8 +240,9 @@ class RuneUpdater {
     }
 
     // minted
-    for (let i = <u32>0; i < this.minted; i++) {
-      RuneEntry.incMinted(this.runeTx.blockHeight, this.runeTx.index);
+    if (this.minted.isSome()) {
+      const runeId = this.minted.unwrap();
+      RuneEntry.incMinted(runeId.block, runeId.tx);
     }
 
     // edict, minted amount
@@ -245,13 +288,17 @@ class RuneUpdater {
       return Option.Some(u128.from(0));
     }
 
-    this.minted += 1;
+    this.minted = Option.Some(runeId);
 
     return amount;
   }
 
   private etched(runestone: Runestone): Option<Rune> {
     // TODO: cenotapth
+
+    if (runestone.etching.isNone()) {
+      return Option.None(Rune.default());
+    }
 
     let rune = Option.None(Rune.default());
     if (runestone.etching.isSome()) {
@@ -292,6 +339,7 @@ function _getUnallocated(vins: Vin[]): Map<RuneId, u128> {
 
   for (let i = 0; i < vins.length; i++) {
     const vin = vins[i];
+
     const entries = OutpointEntry.get(vin.txHash, vin.index);
     if (entries.isNone()) {
       continue;
@@ -307,6 +355,10 @@ function _getUnallocated(vins: Vin[]): Map<RuneId, u128> {
 }
 
 function _processRune(runeTx: RuneTransaction): void {
+  if (runeTx.runeData.isNone()) {
+    return;
+  }
+
   const runeUpdater = new RuneUpdater(runeTx);
   runeUpdater.index();
   runeUpdater.commit();

@@ -12,7 +12,7 @@ export class OutpointEntry {
   tx: u32;
 
   hash: string;
-  index: u32;
+  vout: u32;
 
   address: string;
   amount: u128;
@@ -21,14 +21,14 @@ export class OutpointEntry {
     block: u64,
     tx: u32,
     hash: string,
-    index: u32,
+    vout: u32,
     address: string,
     amount: u128,
   ) {
     this.block = block;
     this.tx = tx;
     this.hash = hash;
-    this.index = index;
+    this.vout = vout;
     this.address = address;
     this.amount = amount;
   }
@@ -37,12 +37,12 @@ export class OutpointEntry {
     return changetype<OutpointEntry>(0);
   }
 
-  static get(hash: string, index: u32): Option<OutpointEntry[]> {
+  static get(hash: string, vout: u32): Option<OutpointEntry[]> {
     // TODO: multiple rows
     //
     const r = outpoints.select([
       new Column("hash", hash),
-      new Column("index", index.toString()),
+      new Column("vout", vout.toString()),
     ]);
     if (getResultFromJson(r, "error", "string").includes("no rows")) {
       return Option.None([OutpointEntry.default()]);
@@ -54,14 +54,14 @@ export class OutpointEntry {
     const address = r.getString("address")!.valueOf();
 
     return Option.Some([
-      new OutpointEntry(block, tx, hash, index, address, amount),
+      new OutpointEntry(block, tx, hash, vout, address, amount),
     ]);
   }
 
-  static delete(hash: string, index: u32): void {
+  static delete(hash: string, vout: u32): void {
     outpoints.delete([
       new Column("hash", hash),
-      new Column("index", index.toString()),
+      new Column("vout", vout.toString()),
     ]);
   }
 
@@ -70,7 +70,7 @@ export class OutpointEntry {
       new Column("block", this.block.toString()),
       new Column("tx", this.tx.toString()),
       new Column("hash", this.hash),
-      new Column("index", this.index.toString()),
+      new Column("vout", this.vout.toString()),
       new Column("address", this.address),
       new Column("amount", this.amount.toString()),
     ];

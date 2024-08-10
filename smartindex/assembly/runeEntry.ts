@@ -3,6 +3,7 @@ import { Option } from "./option";
 import { runeEntries } from "./tables";
 import {
   Column,
+  consoleLog,
   getResultFromJson,
 } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 import { TableSchema } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
@@ -226,6 +227,8 @@ export class RuneEntry {
 
     const minted = u128.from(r.getString("minted")!.valueOf());
     const increased = u128.add(minted, u128.from(1));
+
+    consoleLog("INCC MINTEDD");
 
     runeEntries.update(
       [new Column("block", block.toString()), new Column("tx", tx.toString())],

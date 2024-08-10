@@ -35,7 +35,7 @@ export const outpoints = new Table("outpoints", [
   new Column("tx", "string"),
 
   new Column("hash", "string"),
-  new Column("index", "string"),
+  new Column("vout", "string"),
 
   new Column("address", "string"),
   new Column("amount", "string"),

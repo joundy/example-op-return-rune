@@ -3,6 +3,7 @@ import { Box } from "./box";
 import { Option } from "../option";
 import { Field } from "../field";
 import { RuneId } from "../runeId";
+import { consoleLog } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 
 export function readULEB128ToU128(buf: Box, to: u128): usize {
   const slice = buf.sliceFrom(0);
@@ -75,6 +76,23 @@ export function getMint(fields: Map<u64, Array<u128>>): Option<RuneId> {
   const tx = <u32>mint[1].lo;
 
   return Option.Some(new RuneId(block, tx));
+}
+
+export function hexStringBigToLittle(hexStr: string): string {
+  if (hexStr.startsWith("0x")) {
+    hexStr = hexStr.slice(2);
+  }
+
+  if (hexStr.length % 2 !== 0) {
+    hexStr = "0" + hexStr;
+  }
+
+  let littleEndianHex = "";
+  for (let i = 0; i < hexStr.length; i += 2) {
+    littleEndianHex = hexStr.slice(i, i + 2) + littleEndianHex;
+  }
+
+  return littleEndianHex;
 }
 
 export * from "./box";

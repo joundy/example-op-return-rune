@@ -2,6 +2,18 @@
 # yarn lockfile v1
 
 
+"@east-bitcoin-lib/sdk@file:../../east-bitcoin-lib/packages/sdk":
+  version "0.0.2"
+  resolved "file:../../east-bitcoin-lib/packages/sdk"
+  dependencies:
+    "@bitcoinerlab/secp256k1" "^1.1.1"
+    bip32 "^4.0.0"
+    bip39 "^3.1.0"
+    bitcoin-address-validation "^2.2.3"
+    bitcoinjs-lib "^6.1.5"
+    cross-fetch "^4.0.0"
+    ecpair "^2.1.0"
+
 as-bignum@^0.3.1:
   version "0.3.1"
   resolved "https://registry.npmjs.org/as-bignum/-/as-bignum-0.3.1.tgz"

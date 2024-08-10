@@ -6,7 +6,7 @@ export class Outpoint {
   rune: string;
 
   txHash: string;
-  index: u32;
+  vout: u32;
 
   address: string;
   amount: u128;
@@ -16,15 +16,15 @@ export class Outpoint {
     runeTx: u32,
     rune: string,
     txHash: string,
-    index: u32,
+    vout: u32,
     address: string,
-    amount: u128
+    amount: u128,
   ) {
     this.runeBlock = runeBlock;
     this.runeTx = runeTx;
     this.rune = rune;
     this.txHash = txHash;
-    this.index = index;
+    this.vout = vout;
     this.address = address;
     this.amount = amount;
   }

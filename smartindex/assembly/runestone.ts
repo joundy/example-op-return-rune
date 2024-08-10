@@ -15,6 +15,7 @@ import { Flaw } from "./flaws";
 import { Artifact, Cenotaph, Runestone } from "./artifact";
 import { Etching, Terms } from "./etching";
 import { Rune } from "./rune";
+import { consoleLog } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 
 export class RunestoneParser {
   fields: Map<u64, Array<u128>>;
@@ -125,6 +126,24 @@ export class RunestoneParser {
     const edicts = Edict.fromDeltaSeries(edictsRaw);
     const mint = getMint(fields);
     const pointer = getFieldValue<u32>(fields, Field.POINTER);
+
+    const fieldkeys = fields.keys();
+
+    consoleLog("HEEEELOOO GAYSS");
+    consoleLog(fieldkeys.length.toString());
+
+    for (let i = 0; i < fieldkeys.length; i++) {
+      const field = fieldkeys[i];
+      consoleLog("FIELD");
+      consoleLog(field.toString());
+      const values = fields.get(field);
+
+      consoleLog("VALUES");
+      for (let j = 0; j < values.length; j++) {
+        const value = values[j];
+        consoleLog(value.toString());
+      }
+    }
 
     return new Runestone(edicts, etching, mint, pointer);
   }

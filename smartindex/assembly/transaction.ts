@@ -1,5 +1,8 @@
 import { Transaction } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
 import { Option } from "./option";
+import { consoleLog } from "@east-bitcoin-lib/smartindex-sdk/assembly";
+import { u128 } from "as-bignum/assembly";
+import { hexStringBigToLittle } from "./utils";
 
 const OP_13 = "93";
 
@@ -59,8 +62,18 @@ export class RuneTransaction {
         vout.asmScripts[0] === "OP_RETURN" &&
         vout.asmScripts[1] === OP_13
       ) {
+        let data = vout.asmScripts[2];
+
+        consoleLog("DATAAA");
+        consoleLog(data);
+        // hacky trick, convert big endian to little endian
+        if (!data.startsWith("0")) {
+          const hex = u128.from(data).lo.toString(16).toString();
+          data = hexStringBigToLittle(hex);
+        }
+
         this.runeIndex = Option.Some(<u32>i);
-        this.runeData = Option.Some(vout.asmScripts[2]);
+        this.runeData = Option.Some(data);
         break;
       }
     }
@@ -77,13 +90,13 @@ export class RuneTransaction {
     for (let i = 0; i < transaction.utxos.length; i++) {
       const utxo = transaction.utxos[i];
 
-      if (utxo.spendingTxHash) {
+      if (utxo.spendingTxHash === transaction.hash) {
         vins.push(
-          new Vin(utxo.spendingTxHash, <u32>parseInt(utxo.spendingTxIndex)),
+          new Vin(utxo.fundingTxHash, <u32>parseInt(utxo.fundingTxIndex)),
         );
       }
 
-      if (utxo.fundingTxHash) {
+      if (utxo.fundingTxHash === transaction.hash) {
         vouts.push(
           new Vout(
             utxo.fundingTxHash,
