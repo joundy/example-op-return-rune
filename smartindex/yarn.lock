@@ -2,17 +2,14 @@
 # yarn lockfile v1
 
 
-"@east-bitcoin-lib/sdk@file:../../east-bitcoin-lib/packages/sdk":
-  version "0.0.2"
-  resolved "file:../../east-bitcoin-lib/packages/sdk"
+"@east-bitcoin-lib/smartindex-sdk@file:../../eastnode/smartindex-sdk":
+  version "1.2.0"
+  resolved "file:../../eastnode/smartindex-sdk"
   dependencies:
-    "@bitcoinerlab/secp256k1" "^1.1.1"
-    bip32 "^4.0.0"
-    bip39 "^3.1.0"
-    bitcoin-address-validation "^2.2.3"
-    bitcoinjs-lib "^6.1.5"
-    cross-fetch "^4.0.0"
-    ecpair "^2.1.0"
+    "@changesets/cli" "^2.27.7"
+    as-bignum "^0.3.1"
+    assemblyscript "^0.27.27"
+    assemblyscript-json "^1.1.0"
 
 as-bignum@^0.3.1:
   version "0.3.1"

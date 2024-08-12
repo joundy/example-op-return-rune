@@ -127,23 +127,17 @@ export class RunestoneParser {
     const mint = getMint(fields);
     const pointer = getFieldValue<u32>(fields, Field.POINTER);
 
-    const fieldkeys = fields.keys();
-
-    consoleLog("HEEEELOOO GAYSS");
-    consoleLog(fieldkeys.length.toString());
-
-    for (let i = 0; i < fieldkeys.length; i++) {
-      const field = fieldkeys[i];
-      consoleLog("FIELD");
-      consoleLog(field.toString());
-      const values = fields.get(field);
-
-      consoleLog("VALUES");
-      for (let j = 0; j < values.length; j++) {
-        const value = values[j];
-        consoleLog(value.toString());
-      }
-    }
+    // const fieldkeys = fields.keys();
+    // for (let i = 0; i < fieldkeys.length; i++) {
+    //   const field = fieldkeys[i];
+    //   consoleLog(`FIELD: ${field.toString()}`);
+    //
+    //   const values = fields.get(field);
+    //   for (let j = 0; j < values.length; j++) {
+    //     const value = values[j];
+    //     consoleLog(`VALUE: ${value.toString()}`);
+    //   }
+    // }
 
     return new Runestone(edicts, etching, mint, pointer);
   }

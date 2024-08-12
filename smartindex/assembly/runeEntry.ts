@@ -228,7 +228,7 @@ export class RuneEntry {
     const minted = u128.from(r.getString("minted")!.valueOf());
     const increased = u128.add(minted, u128.from(1));
 
-    consoleLog("INCC MINTEDD");
+    // consoleLog(`INC MINTED: ${increased.toString()}`);
 
     runeEntries.update(
       [new Column("block", block.toString()), new Column("tx", tx.toString())],
