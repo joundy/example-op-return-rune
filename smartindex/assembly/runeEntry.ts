@@ -3,7 +3,6 @@ import { Option } from "./option";
 import { runeEntries } from "./tables";
 import {
   Column,
-  consoleLog,
   getResultFromJson,
 } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 import { TableSchema } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";

@@ -3,7 +3,6 @@ import { Box } from "./box";
 import { Option } from "../option";
 import { Field } from "../field";
 import { RuneId } from "../runeId";
-import { consoleLog } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 
 export function readULEB128ToU128(buf: Box, to: u128): usize {
   const slice = buf.sliceFrom(0);

@@ -3,7 +3,6 @@ import {
   Column,
   ptrToString,
   getResultFromJson,
-  consoleLog,
 } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 import { getTxsByBlockHeight } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
 import { RuneTransaction, Vin } from "./transaction";
@@ -96,8 +95,8 @@ class RuneUpdater {
       outputAmount = u128.add(outputAllocated.get(runeId.toKey()), amount);
     }
 
-    consoleLog(`ALLOCATE REMAINING_ALANCE: ${remainingBalance.toString()}`);
-    consoleLog(`ALLOCATE OUTPUT_AMOUNT: ${outputAmount.toString()}`);
+    // consoleLog(`ALLOCATE REMAINING_ALANCE: ${remainingBalance.toString()}`);
+    // consoleLog(`ALLOCATE OUTPUT_AMOUNT: ${outputAmount.toString()}`);
 
     this.allocated[output].set(runeId.toKey(), outputAmount);
   }
@@ -125,7 +124,8 @@ class RuneUpdater {
       // - etching
       // - flaw
       // - mint
-      throw new Error("errors.cenotaph");
+      return;
+      // throw new Error("errors.cenotaph");
     }
 
     const runestone = artifact as Runestone;
@@ -169,15 +169,16 @@ class RuneUpdater {
     for (let i = 0; i < runestone.edicts.length; i++) {
       const edict = runestone.edicts[i];
 
-      consoleLog("=== EDICT DATA");
-      consoleLog(`runeId: ${edict.runeId.toKey()}`);
-      consoleLog(`amount: ${edict.amount.toString()}`);
-      consoleLog(`output: ${edict.output.toString()}`);
-      consoleLog("=== END EDICT DATA");
+      // consoleLog("=== EDICT DATA");
+      // consoleLog(`runeId: ${edict.runeId.toKey()}`);
+      // consoleLog(`amount: ${edict.amount.toString()}`);
+      // consoleLog(`output: ${edict.output.toString()}`);
+      // consoleLog("=== END EDICT DATA");
 
-      if (edict.output >= <u32>this.runeTx.vouts.length) {
+      if (edict.output > <u32>this.runeTx.vouts.length) {
         // TODO: validate the edict output when parsing the data
-        throw new Error("errors.edict output is not valid");
+        return
+        // throw new Error("errors.edict output is not valid");
       }
 
       let _runeId = Option.None(RuneId.default());
@@ -194,23 +195,58 @@ class RuneUpdater {
       }
       const runeId = _runeId.unwrap();
 
-      consoleLog(`EDICT RUNE ID: ${runeId.toKey()}`);
-      const balance = this.getUnallocatedBalance(runeId);
-      if (balance.isNone()) {
+      // consoleLog(`EDICT RUNE ID: ${runeId.toKey()}`);
+      const _balance = this.getUnallocatedBalance(runeId);
+      if (_balance.isNone()) {
         continue;
       }
+      const balance = _balance.unwrap();
 
-      consoleLog(`EDICT BALANCE:  ${balance.unwrap().toString()}`);
+      // consoleLog(`EDICT BALANCE:  ${balance.unwrap().toString()}`);
 
       if (edict.output === <u32>this.runeTx.vouts.length) {
-        // TODO: handle divide balance into all outputs
+        // find all non op_return output indexes
+        const eligbleOutputs: u32[] = [];
+        for (let i = 0; i < this.runeTx.vouts.length; i++) {
+          const vout = this.runeTx.vouts[i];
+          if (vout.asmScripts.length > 1 && vout.asmScripts[0] == "OP_RETURN") {
+            continue;
+          }
+
+          eligbleOutputs.push(i);
+        }
+
+        if (eligbleOutputs.length > 1) {
+          if (u128.eq(edict.amount, u128.from(0))) {
+            const amount = u128.div(balance, u128.from(eligbleOutputs.length));
+            const remainder = u128.rem(
+              balance,
+              u128.from(eligbleOutputs.length),
+            );
+
+            for (let i = 0; i < eligbleOutputs.length; i++) {
+              const output = eligbleOutputs[i];
+
+              if (u128.lt(u128.from(i), remainder)) {
+                this.allocate(runeId, u128.add(amount, u128.from(1)), output);
+              } else {
+                this.allocate(runeId, amount, output);
+              }
+            }
+          } else {
+            for (let i = 0; i < eligbleOutputs.length; i++) {
+              const output = eligbleOutputs[i];
+              this.allocate(runeId, edict.amount, output);
+            }
+          }
+        }
       } else {
-        consoleLog("=== EDICT ALLOCATE");
-        consoleLog(`runeKey: ${runeId.toKey()}`);
-        consoleLog(`balance: ${balance.unwrap().toString()}`);
-        consoleLog(`amount: ${edict.amount.toString()}`);
-        consoleLog(`output: ${edict.output.toString()}`);
-        consoleLog("=== END EDICT ALLOCATE");
+        // consoleLog("=== EDICT ALLOCATE");
+        // consoleLog(`runeKey: ${runeId.toKey()}`);
+        // consoleLog(`balance: ${balance.unwrap().toString()}`);
+        // consoleLog(`amount: ${edict.amount.toString()}`);
+        // consoleLog(`output: ${edict.output.toString()}`);
+        // consoleLog("=== END EDICT ALLOCATE");
 
         this.allocate(runeId, edict.amount, edict.output);
       }
@@ -224,7 +260,8 @@ class RuneUpdater {
 
     let pointer = runestone.pointer;
     if (pointer.isSome() && pointer.unwrap() >= <u32>this.allocated.length) {
-      throw new Error("errors.pointer index is not valid");
+      return;
+      // throw new Error("errors.pointer index is not valid");
     }
     if (pointer.isNone()) {
       // find first non op_return output index
@@ -310,10 +347,10 @@ class RuneUpdater {
         const runeId = RuneId.fromKey(keys[j]);
         const amount = allocated.get(runeId.toKey());
 
-        consoleLog("=== OUTPUT_ENTRY");
-        consoleLog(`OUTPUT_ENTRY RUNEID ${runeId.toKey()}`);
-        consoleLog(`OUTPUT_ENTRY AMOUNT ${amount}`);
-        consoleLog("=== END OUTPUT_ENTRY");
+        // consoleLog("=== OUTPUT_ENTRY");
+        // consoleLog(`OUTPUT_ENTRY RUNEID ${runeId.toKey()}`);
+        // consoleLog(`OUTPUT_ENTRY AMOUNT ${amount}`);
+        // consoleLog("=== END OUTPUT_ENTRY");
 
         const outputEntry = new OutpointEntry(
           runeId.block,

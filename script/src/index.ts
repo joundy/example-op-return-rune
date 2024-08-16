@@ -52,7 +52,7 @@ const runeWallet3 = wallet.p2wpkh(3);
 async function etching() {
   const runestone = encodeRunestone({
     etching: {
-      runeName: "NASIPADANGUGUGAK",
+      runeName: "NASI.GORENG.PEDAS",
       divisibility: 0,
       symbol: "💸",
       terms: {
@@ -153,19 +153,6 @@ async function mint() {
     inputs: [],
     outputs: [
       {
-        output: Address.fromString(runeWallet1.address),
-        value: 600,
-      },
-      {
-        output: Address.fromString(runeWallet1.address),
-        value: 600,
-      },
-      {
-        // the balance will goes here, the pointer set to index 2
-        output: Address.fromString(runeWallet1.address),
-        value: 600,
-      },
-      {
         output: new OpReturn({ buffer: runestone.encodedRunestone }),
         value: 0,
       },
@@ -237,24 +224,8 @@ async function edict() {
           block: 118n,
           tx: 1,
         },
-        amount: 90n,
-        output: 0,
-      },
-      {
-        id: {
-          block: 118n,
-          tx: 1,
-        },
-        amount: 20n,
-        output: 1,
-      },
-      {
-        id: {
-          block: 118n,
-          tx: 1,
-        },
-        amount: 11n,
-        output: 2,
+        amount: 0n,
+        output: 7,
       },
     ],
   });
@@ -262,7 +233,7 @@ async function edict() {
   // please specify the inputs, the inputs must contain the rune balances
   const runeWallet1Inputs = await getInputsByOutpoints(runeWallet1.address, [
     {
-      hash: "8b604ebb0426d24dd947f4bd46bed9d592e62d84aa25e0fa4c4f988edb32e45c",
+      hash: "59f5afee2338faeeaab3d4403d8099b511ee826e6f6b508cf767fef26c2aa91f",
       index: 0,
     },
   ]);
@@ -281,11 +252,19 @@ async function edict() {
         value: 600,
       },
       {
-        output: Address.fromString(runeWallet2.address),
+        output: Address.fromString(runeWallet1.address),
         value: 600,
       },
       {
-        output: Address.fromString(runeWallet3.address),
+        output: Address.fromString(runeWallet1.address),
+        value: 600,
+      },
+      {
+        output: Address.fromString(runeWallet1.address),
+        value: 600,
+      },
+      {
+        output: Address.fromString(runeWallet1.address),
         value: 600,
       },
       {

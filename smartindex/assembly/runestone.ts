@@ -15,7 +15,6 @@ import { Flaw } from "./flaws";
 import { Artifact, Cenotaph, Runestone } from "./artifact";
 import { Etching, Terms } from "./etching";
 import { Rune } from "./rune";
-import { consoleLog } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 
 export class RunestoneParser {
   fields: Map<u64, Array<u128>>;

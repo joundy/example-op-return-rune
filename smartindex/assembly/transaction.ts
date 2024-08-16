@@ -2,7 +2,6 @@ import { Transaction } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
 import { Option } from "./option";
 import { Box, decodeHex } from "./utils";
 import { scriptParse } from "./utils/script";
-import { consoleLog } from "@east-bitcoin-lib/smartindex-sdk/assembly";
 
 const OP_13 = "93";
 
