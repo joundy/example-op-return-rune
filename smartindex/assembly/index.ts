@@ -4,8 +4,8 @@ import {
   ptrToString,
   getResultFromJson,
 } from "@east-bitcoin-lib/smartindex-sdk/assembly";
-import { getTxsByBlockHeight } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
-import { RuneTransaction, Vin } from "./transaction";
+import { getTransactionV1sByBlockHeight } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
+import { RuneTransaction } from "./transaction";
 import { outpoints, runeEntries, stateTable } from "./tables";
 import { RuneId, RuneIdKey } from "./runeId";
 import { u128 } from "as-bignum/assembly";
@@ -17,6 +17,7 @@ import { Network } from "./constants";
 import { Rune } from "./rune";
 import { RuneEntry } from "./runeEntry";
 import { Etching } from "./etching";
+import { VinV1 } from "@east-bitcoin-lib/smartindex-sdk/assembly/types";
 export { allocate } from "@east-bitcoin-lib/smartindex-sdk/assembly/external";
 
 // TODO: remove hardcoded network
@@ -49,8 +50,8 @@ class RuneUpdater {
     this.runeTx = runeTx;
 
     this.etching = Option.None(Etching.default());
-    this.unallocated = _getUnallocated(runeTx.vins);
-    this.allocated = runeTx.vouts.map((): Map<RuneIdKey, u128> => {
+    this.unallocated = _getUnallocated(runeTx.transaction.vins);
+    this.allocated = runeTx.transaction.vouts.map((): Map<RuneIdKey, u128> => {
       return new Map<RuneIdKey, u128>();
     });
 
@@ -149,7 +150,7 @@ class RuneUpdater {
     // PREMINE
     if (etched.isSome()) {
       if (runestone.etching.unwrap().premine.isSome()) {
-        const runeId = new RuneId(this.runeTx.blockHeight, this.runeTx.index);
+        const runeId = new RuneId(this.runeTx.height, this.runeTx.index);
         if (this.unallocated.has(runeId.toKey())) {
           let prev = this.unallocated.get(runeId.toKey());
           this.unallocated.set(
@@ -175,9 +176,9 @@ class RuneUpdater {
       // consoleLog(`output: ${edict.output.toString()}`);
       // consoleLog("=== END EDICT DATA");
 
-      if (edict.output > <u32>this.runeTx.vouts.length) {
+      if (edict.output > <u32>this.runeTx.transaction.vouts.length) {
         // TODO: validate the edict output when parsing the data
-        return
+        return;
         // throw new Error("errors.edict output is not valid");
       }
 
@@ -185,7 +186,7 @@ class RuneUpdater {
       if (edict.runeId.tx === 0 && edict.runeId.block === 0) {
         if (etched.isSome()) {
           _runeId = Option.Some(
-            new RuneId(this.runeTx.blockHeight, this.runeTx.index),
+            new RuneId(this.runeTx.height, this.runeTx.index),
           );
         } else {
           continue;
@@ -204,12 +205,11 @@ class RuneUpdater {
 
       // consoleLog(`EDICT BALANCE:  ${balance.unwrap().toString()}`);
 
-      if (edict.output === <u32>this.runeTx.vouts.length) {
+      if (edict.output === <u32>this.runeTx.transaction.vouts.length) {
         // find all non op_return output indexes
         const eligbleOutputs: u32[] = [];
-        for (let i = 0; i < this.runeTx.vouts.length; i++) {
-          const vout = this.runeTx.vouts[i];
-          if (vout.asmScripts.length > 1 && vout.asmScripts[0] == "OP_RETURN") {
+        for (let i = 0; i < this.runeTx.transaction.vouts.length; i++) {
+          if (this.runeTx.isVoutOpReturn(i)) {
             continue;
           }
 
@@ -265,17 +265,8 @@ class RuneUpdater {
     }
     if (pointer.isNone()) {
       // find first non op_return output index
-      for (let i = 0; i < this.runeTx.vouts.length; i++) {
-        const vout = this.runeTx.vouts[i];
-
-        // consoleLog("=== VOUT ===");
-        // consoleLog(`txHash: ${vout.txHash}`);
-        // consoleLog(`index: ${vout.index}`);
-        // consoleLog(`pkScript: ${vout.pkScript}`);
-        // consoleLog(`spender: ${vout.spender}`);
-        // consoleLog("=== END VOUT ===");
-
-        if (vout.asmScripts.length > 1 && vout.asmScripts[0] == "OP_RETURN") {
+      for (let i = 0; i < this.runeTx.transaction.vouts.length; i++) {
+        if (this.runeTx.isVoutOpReturn(i)) {
           continue;
         }
 
@@ -316,7 +307,7 @@ class RuneUpdater {
     // etching
     if (this.etching.isSome()) {
       const runeEntry = RuneEntry.fromEtching(
-        this.runeTx.blockHeight,
+        this.runeTx.height,
         this.runeTx.index,
         this.etching.unwrap(),
       );
@@ -333,13 +324,13 @@ class RuneUpdater {
     // outpoints
 
     // invalidate or remove previous outpoints or unallocate
-    for (let i = 0; i < this.runeTx.vins.length; i++) {
-      const vin = this.runeTx.vins[i];
+    for (let i = 0; i < this.runeTx.transaction.vins.length; i++) {
+      const vin = this.runeTx.transaction.vins[i];
       OutpointEntry.delete(vin.txHash, vin.index);
     }
 
     for (let i = 0; i < this.allocated.length; i++) {
-      const vout = this.runeTx.vouts[i];
+      const vout = this.runeTx.transaction.vouts[i];
       const allocated = this.allocated[i];
       const keys = allocated.keys();
 
@@ -357,7 +348,7 @@ class RuneUpdater {
           runeId.tx,
           vout.txHash,
           vout.index,
-          vout.spender,
+          vout.address,
           amount,
         );
 
@@ -372,7 +363,7 @@ class RuneUpdater {
       return Option.Some(u128.from(0));
     }
 
-    const amount = runeEntry.unwrap().mintable(this.runeTx.blockHeight);
+    const amount = runeEntry.unwrap().mintable(this.runeTx.height);
     if (amount.isNone()) {
       return Option.Some(u128.from(0));
     }
@@ -395,10 +386,7 @@ class RuneUpdater {
     }
 
     if (rune.isSome()) {
-      const minimum = Rune.minimumAtHeight(
-        NETWORK,
-        <u32>this.runeTx.blockHeight,
-      );
+      const minimum = Rune.minimumAtHeight(NETWORK, <u32>this.runeTx.height);
 
       if (u128.lt(rune.unwrap().value, minimum.value)) {
         return Option.None(Rune.default());
@@ -415,7 +403,7 @@ class RuneUpdater {
     } else {
       // TODO: count reserved rune
       rune = Option.Some(
-        Rune.reserved(new RuneId(this.runeTx.blockHeight, this.runeTx.index)),
+        Rune.reserved(new RuneId(this.runeTx.height, this.runeTx.index)),
       );
     }
 
@@ -423,7 +411,7 @@ class RuneUpdater {
   }
 }
 
-function _getUnallocated(vins: Vin[]): Map<RuneIdKey, u128> {
+function _getUnallocated(vins: VinV1[]): Map<RuneIdKey, u128> {
   const result = new Map<RuneIdKey, u128>();
 
   for (let i = 0; i < vins.length; i++) {
@@ -485,10 +473,9 @@ export function index(from_ptr: i32, to_ptr: i32): void {
   const toBlock: i64 = i64(parseInt(ptrToString(to_ptr)));
 
   for (let i = fromBlock; i <= toBlock; i++) {
-    const txs = getTxsByBlockHeight(i);
+    const txs = getTransactionV1sByBlockHeight(i);
     for (let j = 0; j < txs.length; j++) {
-      const runeTransaction = RuneTransaction.fromTransaction(i, j, txs[j]);
-      _processRune(runeTransaction);
+      _processRune(new RuneTransaction(i, j, txs[j]));
     }
 
     stateTable.update(
