@@ -365,7 +365,7 @@ class RuneUpdater {
 
     const amount = runeEntry.unwrap().mintable(this.runeTx.height);
     if (amount.isNone()) {
-      return Option.Some(u128.from(0));
+      return Option.None(u128.from(0));
     }
 
     this.minted = Option.Some(runeId);
@@ -418,12 +418,12 @@ function _getUnallocated(vins: VinV1[]): Map<RuneIdKey, u128> {
     const vin = vins[i];
 
     const entries = OutpointEntry.get(vin.txHash, vin.index);
-    if (entries.isNone()) {
+    if (entries.length === 0) {
       continue;
     }
 
-    for (let j = 0; j < entries.unwrap().length; j++) {
-      const entry = entries.unwrap()[j];
+    for (let j = 0; j < entries.length; j++) {
+      const entry = entries[j];
       const runeId = new RuneId(entry.block, entry.tx);
 
       if (result.has(runeId.toKey())) {
@@ -483,4 +483,61 @@ export function index(from_ptr: i32, to_ptr: i32): void {
       [new Column("indexed_block_height", i.toString())],
     );
   }
+}
+
+export function get_balance(
+  block_ptr: i32,
+  tx_ptr: i32,
+  address_ptr: i32,
+): void {
+  const block = u64(parseInt(ptrToString(block_ptr)));
+  const tx = u32(parseInt(ptrToString(tx_ptr)));
+  const address = ptrToString(address_ptr);
+
+  const amount = OutpointEntry.getBalance(new RuneId(block, tx), address);
+  valueReturn(amount.toString());
+}
+
+export function get_outpoints_by_rune_id(block_ptr: i32, tx_ptr: i32): void {
+  const block = u64(parseInt(ptrToString(block_ptr)));
+  const tx = u32(parseInt(ptrToString(tx_ptr)));
+
+  const outpoints = OutpointEntry.getOutpointsByRuneId(
+    new RuneId(block, tx),
+    Option.None(""),
+  );
+  valueReturn(
+    `[${outpoints.map<string>((outpoint) => outpoint.toJson()).join(",")}]`,
+  );
+}
+
+export function get_outpoints_by_rune_id_and_address(
+  block_ptr: i32,
+  tx_ptr: i32,
+  address_ptr: i32,
+): void {
+  const block = u64(parseInt(ptrToString(block_ptr)));
+  const tx = u32(parseInt(ptrToString(tx_ptr)));
+  const address = ptrToString(address_ptr);
+
+  const outpoints = OutpointEntry.getOutpointsByRuneId(
+    new RuneId(block, tx),
+    Option.Some(address),
+  );
+  valueReturn(
+    `[${outpoints.map<string>((outpoint) => outpoint.toJson()).join(",")}]`,
+  );
+}
+
+export function get_rune_entry(block_ptr: i32, tx_ptr: i32): void {
+  const block = u64(parseInt(ptrToString(block_ptr)));
+  const tx = u32(parseInt(ptrToString(tx_ptr)));
+
+  const runeEntry = RuneEntry.getByRuneId(new RuneId(block, tx));
+  if(runeEntry.isNone()) {
+    valueReturn("");
+    return;
+  }
+
+  valueReturn(runeEntry.unwrap().toJson());
 }

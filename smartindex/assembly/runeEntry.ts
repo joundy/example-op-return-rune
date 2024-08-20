@@ -453,4 +453,27 @@ export class RuneEntry {
 
     return this.decodeRuneEntry(r);
   }
+
+  toJson(): string {
+    return `{
+      "block": ${this.block},
+      "tx": ${this.tx},
+      "minted": "${this.minted.toString()}",
+      "burned": "${this.burned.toString()}",
+      "divisibility": ${this.divisibility.isSome() ? this.divisibility.unwrap().toString() : "null"},
+      "premine": ${this.premine.isSome() ? `"${this.premine.unwrap().toString()}"` : "null"},
+      "rune": ${this.rune.isSome() ? this.rune.unwrap().value.toString() : "null"},
+      "spacers": ${this.spacers.isSome() ? this.spacers.unwrap().toString() : "null"},
+      "symbol": ${this.symbol.isSome() ? `"${this.symbol.unwrap()}"` : "null"},
+      "turbo": ${this.turbo},
+      "terms": ${this.terms},
+      "amount": ${this.amount.isSome() ? `"${this.amount.unwrap().toString()}"` : "null"},
+      "cap": ${this.cap.isSome() ? `"${this.cap.unwrap().toString()}"` : "null"},
+      "heightStart": ${this.heightStart.isSome() ? `"${this.heightStart.unwrap().toString()}"` : "null"},
+      "heightEnd": ${this.heightEnd.isSome() ? `"${this.heightEnd.unwrap().toString()}"` : "null"},
+      "offsetStart": ${this.offsetStart.isSome() ? `"${this.offsetStart.unwrap().toString()}"` : "null"},
+      "offsetEnd": ${this.offsetEnd.isSome() ? `"${this.offsetEnd.unwrap().toString()}"` : "null"}
+    }`;
+  }
+
 }
