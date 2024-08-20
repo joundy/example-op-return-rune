@@ -1,6 +1,7 @@
 import { u128 } from "as-bignum/assembly";
-import { Network, RESERVED_RUNE, SUBSIDY_HALVING_INTERVAL } from "./constants";
+import { RESERVED_RUNE, SUBSIDY_HALVING_INTERVAL } from "./constants";
 import { RuneId } from "./runeId";
+import { Network } from "@east-bitcoin-lib/smartindex-sdk/assembly/constants";
 
 const STEPS: u128[] = [
   u128.from("0"),

@@ -4,7 +4,7 @@ import {
   ptrToString,
   getResultFromJson,
 } from "@east-bitcoin-lib/smartindex-sdk/assembly";
-import { getTransactionV1sByBlockHeight } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
+import { getNetwork, getTransactionV1sByBlockHeight } from "@east-bitcoin-lib/smartindex-sdk/assembly/sdk";
 import { RuneTransaction } from "./transaction";
 import { outpoints, runeEntries, stateTable } from "./tables";
 import { RuneId, RuneIdKey } from "./runeId";
@@ -13,15 +13,11 @@ import { Option } from "./option";
 import { OutpointEntry } from "./outpointEntry";
 import { RunestoneParser } from "./runestone";
 import { Cenotaph, Runestone } from "./artifact";
-import { Network } from "./constants";
 import { Rune } from "./rune";
 import { RuneEntry } from "./runeEntry";
 import { Etching } from "./etching";
 import { VinV1 } from "@east-bitcoin-lib/smartindex-sdk/assembly/types";
 export { allocate } from "@east-bitcoin-lib/smartindex-sdk/assembly/external";
-
-// TODO: remove hardcoded network
-const NETWORK = Network.Regtest;
 
 class Burned {
   rune: RuneId;
@@ -386,7 +382,7 @@ class RuneUpdater {
     }
 
     if (rune.isSome()) {
-      const minimum = Rune.minimumAtHeight(NETWORK, <u32>this.runeTx.height);
+      const minimum = Rune.minimumAtHeight(getNetwork(), <u32>this.runeTx.height);
 
       if (u128.lt(rune.unwrap().value, minimum.value)) {
         return Option.None(Rune.default());
