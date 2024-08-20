@@ -17,6 +17,7 @@
     "start": "npx serve ."
   },
   "dependencies": {
+    "@east-bitcoin-lib/smartindex-sdk": "^1.4.2",
     "as-bignum": "^0.3.1"
   }
 }
