@@ -52,7 +52,7 @@ const runeWallet3 = wallet.p2wpkh(3);
 async function etching() {
   const runestone = encodeRunestone({
     etching: {
-      runeName: "NASI.GORENG.PEDAS",
+      runeName: "PONDOK.KOPI.ENAK",
       divisibility: 0,
       symbol: "💸",
       terms: {
@@ -142,10 +142,10 @@ async function mint() {
   const runestone = encodeRunestone({
     // please specify the runeId
     mint: {
-      block: 118n,
+      block: 248n,
       tx: 1,
     },
-    pointer: 2,
+    // pointer: 2,
   });
 
   const p = new PSBT({
@@ -298,9 +298,9 @@ async function edict() {
 }
 
 async function main() {
-  // await etching();
+  await etching();
   // await mint();
-  await edict();
+  // await edict();
 }
 
 main();
